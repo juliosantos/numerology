@@ -39,19 +39,20 @@ class HistoricalData
 
   def tag_panic_buy_days(n_streak_days, n_lookback_days, target_avg_change)
     days.each do |day|
-      # skip if we don't have enough data for the calculation
       next if day["index"] < n_streak_days + n_lookback_days
 
-      # FIXME
-      # this should be using ticker_data["days"][(day["index"] - N_LOOKBACK_DAYS)..day["index"]-1] below
-      # this is a "do we buy today" signal, so with the close price of today being unknown at that moment,
-      # there is not any point to include this; leaving it for now to compare results with the spreadsheet
-      day["buy"] = true if (MathLib.average(days[(day["index"] - n_streak_days)..day["index"]].map{ |day| day["n_day_percentage_change"] }) < target_avg_change) && (days[(day["index"] - n_streak_days)..day["index"]].each_slice(2).map{|a,b| b.nil? ? true : a["close"] > b["close"]}.uniq == [true])
+      day["buy"] = true if (MathLib.average(days[(day["index"] - n_streak_days)..day["index"]-1].map{ |day| day["n_day_percentage_change"] }) < target_avg_change) && (days[(day["index"] - n_streak_days)..day["index"]].each_slice(2).map{|a,b| b.nil? ? true : a["close"] > b["close"]}.uniq == [true])
     end
   end
 
-  def buy_days
-    days.select{ |day| day["buy"] }
+  def buy_days(rest_days: 0)
+    last_buy_day = {"index" => -Float::INFINITY}
+
+    days.select{ |day| day["buy"] }.select do |day|
+      is_rest_day = day["index"] - last_buy_day["index"] <= rest_days
+
+      last_buy_day = day unless is_rest_day
+    end
   end
 
   def calculate_gain_horizons_for_buy_days(gain_target_percents)
@@ -89,6 +90,30 @@ class HistoricalData
       }
       memo
     end
+  end
+
+  def baseline(avg_days=30)
+    avg_start_price = MathLib.average(days.first(avg_days).map{ |day| day["close"] })
+    avg_end_price = MathLib.average(days.last(avg_days).map{ |day| day["close"] })
+    performance = MathLib.percent_difference(avg_start_price, avg_end_price)
+
+    {
+      "avg_start_price" => avg_start_price,
+      "avg_end_price" => avg_end_price,
+      "performance" => performance,
+    }
+  end
+
+  def avg_trading_days_per_year
+    MathLib.average(Hash[days.group_by do |day|
+      day["date"][0..3]
+    end.to_a[1..-2]].transform_values(&:count).values)
+  end
+
+  def avg_trading_days_per_month
+    MathLib.average(Hash[days.group_by do |day|
+      day["date"][0..6]
+    end.to_a[1..-2]].transform_values(&:count).values)
   end
 
 private

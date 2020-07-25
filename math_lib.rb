@@ -1,3 +1,5 @@
+include ActionView::Helpers::NumberHelper
+
 module MathLib
   def self.percent_difference (x, y)
     (y.to_f - x.to_f) / x.to_f.abs * 100

@@ -18,13 +18,61 @@ class Report
     },
   }
 
+  def self.parameters
+    PrintLib.h1 "Parameters"
+
+    PrintLib.puts [
+      "Tickers: ",
+      Config.tickers.join(", ")
+    ]
+
+    PrintLib.puts [
+      Config.start_date,
+      " -> ",
+      Config.end_date,
+    ]
+
+    PrintLib.h2 "Panic model:"
+    %w|n_lookback_days n_streak_days target_avg_change|.map do |param_name|
+      PrintLib.puts [param_name, ": ", Config.send(param_name)]
+    end
+
+    PrintLib.puts [
+      "Sell gain target: ",
+      Config.sell_gain_target.to_s,
+      "%",
+    ]
+
+    PrintLib.newline
+  end
+
   def initialize(historical_data, gain_target_percents)
     @historical_data = historical_data
     @gain_target_percents = gain_target_percents
   end
 
-  def puts_indent(string, indent)
-    puts "  "*indent + string.to_s
+  def puts_indent(string, indent, options={indent_size: 2, indent_char: " "})
+    PrintLib.puts_indent(string, indent)
+  end
+
+  def oddities
+    PrintLib.h1 "Oddities"
+
+    PrintLib.puts [
+      "Avg trading days per year: ",
+      MathLib.average(@historical_data.map do |ticker, ticker_data|
+          ticker_data["historical_data"].avg_trading_days_per_year
+        end),
+    ]
+    PrintLib.newline
+
+    PrintLib.puts [
+      "Avg trading days per month: ",
+      MathLib.average(@historical_data.map do |ticker, ticker_data|
+        ticker_data["historical_data"].avg_trading_days_per_month
+        end),
+    ]
+    PrintLib.newline
   end
 
   def gnuplot(formatted_plot_data)
@@ -115,4 +163,31 @@ def single_stock_report(ticker_data, indent)
 
     puts
   end
+
+  def baseline_performance
+    PrintLib.h1 "Baseline performance"
+
+    PrintLib.puts [
+      "Aggregate: ",
+      number_with_delimiter(MathLib.average(@historical_data.map do |ticker, ticker_data|
+        baseline = ticker_data["historical_data"].baseline
+        PrintLib.puts [
+          ticker,
+          ": ",
+          number_with_delimiter(baseline["performance"].round(1)),
+          "% (",
+          number_with_delimiter(baseline["avg_start_price"].round),
+          " -> ",
+          number_with_delimiter(baseline["avg_end_price"].round),
+          ")",
+        ]
+
+        baseline["performance"]
+      end).round),
+      "%"
+    ]
+
+    PrintLib.newline
+  end
+
 end
