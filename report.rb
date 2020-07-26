@@ -21,28 +21,28 @@ class Report
   def self.parameters
     PrintLib.h1 "Parameters"
 
-    PrintLib.puts [
+    PrintLib.puts(
       "Tickers: ",
-      Config.tickers.join(", ")
-    ]
+      Config.tickers.map do |ticker|
+        [
+          ticker,
+          ([
+            "(",
+            HUMAN_TICKERS[ticker],
+            ")",
+          ].join if Config.verbose_tickers),
+        ].compact.join(" ")
+      end.compact.join(", ")
+    )
 
-    PrintLib.puts [
-      Config.start_date,
-      " -> ",
-      Config.end_date,
-    ]
+    PrintLib.puts "Dates: ", Config.start_date, " -> ", Config.end_date
+    PrintLib.newline
 
     PrintLib.h2 "Panic model:"
     %w|n_lookback_days n_streak_days target_avg_change|.map do |param_name|
-      PrintLib.puts [param_name, ": ", Config.send(param_name)]
+      PrintLib.puts param_name, ": ", Config.send(param_name)
     end
-
-    PrintLib.puts [
-      "Sell gain target: ",
-      Config.sell_gain_target.to_s,
-      "%",
-    ]
-
+    PrintLib.puts "sell_gain_target: ", Config.sell_gain_target.to_s, "%"
     PrintLib.newline
   end
 
@@ -58,20 +58,20 @@ class Report
   def oddities
     PrintLib.h1 "Oddities"
 
-    PrintLib.puts [
+    PrintLib.puts(
       "Avg trading days per year: ",
       MathLib.average(@historical_data.map do |ticker, ticker_data|
-          ticker_data["historical_data"].avg_trading_days_per_year
-        end),
-    ]
+        ticker_data["historical_data"].avg_trading_days_per_year
+      end),
+    )
     PrintLib.newline
 
-    PrintLib.puts [
+    PrintLib.puts(
       "Avg trading days per month: ",
       MathLib.average(@historical_data.map do |ticker, ticker_data|
         ticker_data["historical_data"].avg_trading_days_per_month
         end),
-    ]
+    )
     PrintLib.newline
   end
 
@@ -167,11 +167,11 @@ def single_stock_report(ticker_data, indent)
   def baseline_performance
     PrintLib.h1 "Baseline performance"
 
-    PrintLib.puts [
+    PrintLib.puts(
       "Aggregate: ",
       number_with_delimiter(MathLib.average(@historical_data.map do |ticker, ticker_data|
         baseline = ticker_data["historical_data"].baseline
-        PrintLib.puts [
+        PrintLib.puts(
           ticker,
           ": ",
           number_with_delimiter(baseline["performance"].round(1)),
@@ -180,14 +180,13 @@ def single_stock_report(ticker_data, indent)
           " -> ",
           number_with_delimiter(baseline["avg_end_price"].round),
           ")",
-        ]
+        )
 
         baseline["performance"]
       end).round),
       "%"
-    ]
+    )
 
     PrintLib.newline
   end
-
 end

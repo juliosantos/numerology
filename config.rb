@@ -1,20 +1,33 @@
-Dotenv.load
+Dotenv.overload
 
+binding.pry
 class Config
-  def self.print_lib_enabled
-    ENV["PRINT_LIB_ENABLED"] == "1"
+  def self.print_lib_stdout
+    ENV["PRINT_LIB_STDOUT"] == "1"
+  end
+
+  def self.print_lib_file
+    ENV["PRINT_LIB_FILE"] == "1"
   end
 
   def self.tickers
     ENV["TICKERS"].split.sort
   end
 
+  def self.verbose_tickers
+    ENV["VERBOSE_TICKERS"] == "1"
+  end
+
   def self.start_date
-    Date.parse(ENV["START_DATE"])
+    Date.parse ENV["START_DATE"]
+  rescue
+    nil
   end
 
   def self.end_date
     Date.parse(ENV["END_DATE"])
+  rescue
+    nil
   end
 
   def self.n_lookback_days
@@ -34,6 +47,6 @@ class Config
   end
 
   def self.method_missing(*args)
-    method = args[0].to_s.upcase
+    method = ENV[args[0].to_s.upcase]
   end
 end

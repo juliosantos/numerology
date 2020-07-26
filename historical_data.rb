@@ -93,14 +93,20 @@ class HistoricalData
   end
 
   def baseline(avg_days=30)
-    avg_start_price = MathLib.average(days.first(avg_days).map{ |day| day["close"] })
-    avg_end_price = MathLib.average(days.last(avg_days).map{ |day| day["close"] })
-    performance = MathLib.percent_difference(avg_start_price, avg_end_price)
+    avg_start_price = MathLib.average(
+      days.first(avg_days).map { |day| day["close"] }
+    )
+    avg_end_price = MathLib.average(
+      days.last(avg_days).map { |day| day["close"] }
+    )
 
     {
       "avg_start_price" => avg_start_price,
       "avg_end_price" => avg_end_price,
-      "performance" => performance,
+      "performance" => MathLib.percent_difference(
+        avg_start_price.to_f,
+        avg_end_price.to_f,
+      ),
     }
   end
 

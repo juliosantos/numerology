@@ -1,12 +1,12 @@
 module TradingStrategies
   # FIXME no longer *every* panic because of the new code to avoid buying sequentially
-  def self.buy_every_panic_and_sell_at_target(historical_data)
-    PrintLib.h1("buy_every_panic_and_sell_at_target")
+  def self.buy_every_panic_and_sell_at_target(historical_data, rest_days: Config.rest_days)
+    PrintLib.h1 "buy_every_panic_and_sell_at_target"
       
     cash_amount = 1000
 
     buys = historical_data.reduce({}) do |memo, (ticker, ticker_data)|
-      buy_days = ticker_data["historical_data"].buy_days(rest_days: 2)
+      buy_days = ticker_data["historical_data"].buy_days(rest_days: rest_days)
 
       PrintLib.h2(ticker)
 
@@ -95,22 +95,48 @@ module TradingStrategies
         Float::INFINITY
       end
 
-      PrintLib.puts "Total bought: #{total_bought.round}"
-      PrintLib.puts "Total sold: #{total_sold.round}"
-      PrintLib.puts "Stock value: #{stock_value.round}"
-      PrintLib.puts "Total profit: #{MathLib.percent_difference(total_bought, total_sold).round(1)}%"
+      PrintLib.puts "Total bought: ", total_bought.round
+      PrintLib.puts "Total sold: ", total_sold.round
+      PrintLib.puts "Stock value: ", stock_value.round
+      PrintLib.puts(
+        "Total profit: ",
+        MathLib.percent_difference(total_bought, total_sold).round(1),
+        "%"
+      )
       PrintLib.newline
 
       PrintLib.h3 "Sell unsold shares now"
-      PrintLib.puts "Stock price: #{stock_price.round}"
-      PrintLib.puts "Total sold: #{(total_sold + stock_value).round}"
-      PrintLib.puts "Total profit: #{MathLib.percent_difference(total_bought, total_sold + stock_value).round(1)}%"
+      PrintLib.puts "Stock price: ", stock_price.round
+      PrintLib.puts(
+        "Total sold: ",
+        number_with_delimiter((total_sold + stock_value).round),
+      )
+      PrintLib.puts(
+        "Total profit: ",
+        MathLib.percent_difference(total_bought, total_sold + stock_value).round(1),
+        "%",
+      )
       PrintLib.newline
 
       PrintLib.h3 "Sell unsold shares at target (in #{last_sale_forecast}* days)"
-      PrintLib.puts "Stock price: #{(stock_price + stock_price * Config.sell_gain_target / 100).round}*"
-      PrintLib.puts "Total sold: #{(total_sold + stock_value_forecast).round}*"
-      PrintLib.puts "Total profit: #{MathLib.percent_difference(total_bought, total_sold + stock_value_forecast).round(1)}%*"
+      PrintLib.puts(
+        "Stock price: ",
+        number_with_delimiter((stock_price + stock_price * Config.sell_gain_target / 100).round),
+        "*",
+      )
+      PrintLib.puts(
+       "Total sold: ",
+        number_with_delimiter((total_sold + stock_value_forecast).round),
+        "*",
+      )
+      PrintLib.puts(
+        "Total profit: ",
+        MathLib.percent_difference(
+          total_bought,
+          total_sold + stock_value_forecast,
+      ).round(1),
+      "%*",
+      )
       PrintLib.newline
 
       memo[ticker] = {
@@ -158,28 +184,28 @@ module TradingStrategies
 
 
     PrintLib.h2 "Aggregate"
-    PrintLib.puts ["Total bought:", total_bought.round]
-    PrintLib.puts ["Stock value: ", stock_value.round]
-    PrintLib.puts ["Total sold: ", total_sold.round]
+    PrintLib.puts "Total bought:", total_bought.round
+    PrintLib.puts "Stock value: ", stock_value.round
+    PrintLib.puts "Total sold: ", total_sold.round
     PrintLib.newline
 
     PrintLib.h3 "Sell unsold shares now"
-    PrintLib.puts ["Total sold: ", (total_sold + stock_value).round]
-    PrintLib.puts [
+    PrintLib.puts "Total sold: ", (total_sold + stock_value).round
+    PrintLib.puts(
       "Total profit: ",
       MathLib.percent_difference(total_bought, total_sold + stock_value).round(1),
       "%",
-    ]
+    )
     PrintLib.newline
 
     PrintLib.h3 "Sell unsold shares at target (in #{last_sale_forecast}* days)"
-    PrintLib.puts ["Buys never sold: ", stocks_held_forever], indent: "+1"
-    PrintLib.puts ["Total sold: ", (total_sold + stock_value_forecast).round, "*"]
-    PrintLib.puts [
+    PrintLib.puts "Buys never sold: ", stocks_held_forever, indent_count: "+1"
+    PrintLib.puts "Total sold: ", (total_sold + stock_value_forecast).round, "*"
+    PrintLib.puts(
       "Total profit: ",
       MathLib.percent_difference(total_bought, total_sold + stock_value_forecast).round(1),
       "%*",
-    ]
+    )
     PrintLib.newline
 
     # XXX row below is assuming "sell now" (true)
@@ -187,7 +213,7 @@ module TradingStrategies
     total_profit
   end
 
-  def self.buy_every_panic_and_hold(historical_data)
+  def self.buy_every_panic_and_hold(historical_data, rest_days: Config.rest_days)
     PrintLib.h1 "buy_every_panic_and_hold"
 
     cash_amount = 1000
@@ -195,7 +221,7 @@ module TradingStrategies
     buys = historical_data.map do |ticker, ticker_data|
       PrintLib.h2 ticker
 
-      buys = ticker_data["historical_data"].buy_days(rest_days: 2).map do |day|
+      buys = ticker_data["historical_data"].buy_days(rest_days: Config.rest_days).map do |day|
         {
           "buy_date" => day["date"],
           "price" => day["close"],
@@ -221,11 +247,11 @@ module TradingStrategies
         total_value,
       )
 
-      PrintLib.puts "Number of buys: #{n_buys}"
-      PrintLib.puts "Total bought: #{total_bought.round}"
-      PrintLib.puts "Stock value: #{stock_value.round}"
-      PrintLib.puts "Total value: #{total_value.round}"
-      PrintLib.puts "Total profit: #{total_profit_percent.round(1)}%"
+      PrintLib.puts "Number of buys: ", n_buys
+      PrintLib.puts "Total bought: ", number_with_delimiter(total_bought.round)
+      PrintLib.puts "Stock value: ", number_with_delimiter(stock_value.round)
+      PrintLib.puts "Total value: ", number_with_delimiter(total_value.round)
+      PrintLib.puts "Total profit: ", total_profit_percent.round(1), "%"
       PrintLib.newline
 
       {
@@ -242,11 +268,14 @@ module TradingStrategies
     total_profit = MathLib.percent_difference(total_bought, total_value)
 
     PrintLib.h2("Aggregate")
-    PrintLib.puts ["Number of buys: ", buys.map{ |buy| buy["n_buys"] }.sum]
-    PrintLib.puts ["Total bought: ", total_bought.round]
-    PrintLib.puts ["Stock value: ", buys.map{ |buy| buy["stock_value"] }.sum.round]
-    PrintLib.puts ["Total value: ", total_value.round]
-    PrintLib.puts ["Total profit: ", total_profit.round(1), "%"]
+    PrintLib.puts "Number of buys: ", buys.map{ |buy| buy["n_buys"] }.sum
+    PrintLib.puts "Total bought: ", number_with_delimiter(total_bought.round)
+    PrintLib.puts(
+      "Stock value: ",
+      number_with_delimiter(buys.map{ |buy| buy["stock_value"] }.sum.round),
+    )
+    PrintLib.puts "Total value: ", total_value.round
+    PrintLib.puts "Total profit: ", total_profit.round(1), "%"
     PrintLib.newline
 
     total_profit
@@ -276,11 +305,11 @@ module TradingStrategies
       total_value = stock_value
       total_profit_percent = MathLib.percent_difference(total_bought, total_value)
 
-      PrintLib.puts ["Number of buys: ", n_buys]
-      PrintLib.puts ["Total bought: ", total_bought.round]
-      PrintLib.puts ["Stock value: ", stock_value.round]
-      PrintLib.puts ["Total value: ", total_value.round]
-      PrintLib.puts ["Total profit: ", total_profit_percent.round(1), "%"]
+      PrintLib.puts "Number of buys: ", n_buys
+      PrintLib.puts "Total bought: ", number_with_delimiter(total_bought.round)
+      PrintLib.puts "Stock value: ", number_with_delimiter(stock_value.round)
+      PrintLib.puts "Total value: ", number_with_delimiter(total_value.round)
+      PrintLib.puts "Total profit: ", total_profit_percent.round(1), "%"
       PrintLib.newline
 
       {
@@ -296,14 +325,14 @@ module TradingStrategies
     total_profit = MathLib.percent_difference(total_bought, total_value)
 
     PrintLib.h2("Aggregate")
-    PrintLib.puts ["Number of buys: ", buys.map{ |buy| buy["n_buys"] }.sum]
-    PrintLib.puts ["Total bought: ", total_bought.round]
-    PrintLib.puts [
+    PrintLib.puts "Number of buys: ", buys.map{ |buy| buy["n_buys"] }.sum
+    PrintLib.puts "Total bought: ", number_with_delimiter(total_bought.round)
+    PrintLib.puts(
       "Stock value: ",
-      buys.map{ |buy| buy["stock_value"] }.sum.round,
-    ]
-    PrintLib.puts ["Total value: ", total_value.round]
-    PrintLib.puts ["Total profit: ", total_profit.round(1), "%"]
+      number_with_delimiter(buys.map{ |buy| buy["stock_value"] }.sum.round),
+    )
+    PrintLib.puts "Total value: ", number_with_delimiter(total_value.round)
+    PrintLib.puts "Total profit: ", total_profit.round(1), "%"
     PrintLib.newline
     
     total_profit

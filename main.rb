@@ -21,13 +21,15 @@ require "./print_lib.rb"
 require "./historical_data.rb"
 require "./report.rb"
 require "./trading_strategies.rb"
+require "./tickers.rb"
 
 GAIN_TARGET_PERCENTS=1..200
 
+PrintLib.init
 Report.parameters
 
 @historical_data = Config.tickers.each.reduce({}) do |memo, ticker|
-  memo[ticker] = {
+  memo[Config.verbose_tickers ? HUMAN_TICKERS[ticker] : ticker] = {
     "historical_data" => HistoricalData.get(
       ticker,
       Config.start_date,
@@ -41,7 +43,7 @@ report = Report.new(@historical_data, GAIN_TARGET_PERCENTS)
 report.oddities
 
 @historical_data.each_with_index do |(ticker, ticker_data), index|
-  puts "#{ticker} (#{index}/#{@historical_data.size})"
+  #puts "#{ticker} (#{index}/#{@historical_data.size})"
 
   ticker_data["historical_data"].calculate_percentage_change(Config.n_lookback_days)
 
@@ -62,4 +64,6 @@ report.baseline_performance
 
 TradingStrategies.buy_every_panic_and_sell_at_target(@historical_data)
 TradingStrategies.buy_every_n_days_and_hold(@historical_data, 20)
-#TradingStrategies.buy_every_panic_and_hold(@historical_data)
+TradingStrategies.buy_every_panic_and_hold(@historical_data)
+
+PrintLib.end
