@@ -108,7 +108,7 @@ module TradingStrategies
     # target, as implemented before; at target or after duration,
     # whichever's shorter;
 
-    report(
+    Report::TradingStrategies.print(
       strategy: strategy,
       strategy_options: strategy_options,
       trades_by_ticker: trades_by_ticker,
@@ -186,106 +186,5 @@ module TradingStrategies
       end
       memo
     end
-  end
-
-  def self.report_ticker(ticker:, trades:, result:, options: {})
-    PrintLib.h2(PrintLib.ticker(ticker))
-
-    if options[:show_trades]
-      PrintLib.h3 "Trades"
-      
-      trades.sort_by{ |t| t[:date] }.each_with_index do |trade, index|
-        PrintLib.puts(
-         (index + 1).to_s.rjust(trades.size.to_s.size),
-          ". ",
-          trade[:type].to_s.upcase,
-          " ",
-          trade[:date],
-          " @ ",
-          number_with_delimiter(trade[:stock_price]),
-        )
-      end || PrintLib.puts("(no trades)")
-      PrintLib.newline
-    end
-
-    PrintLib.h3 "Result"
-    PrintLib.puts "Number of buys: ", result[:n_buys]
-    PrintLib.puts(
-      "Cash spent: ",
-      number_with_delimiter(result[:cash_spent].round),
-    )
-    PrintLib.puts(
-      "Cash earned: ",
-      number_with_delimiter(result[:cash_earned].round),
-    )
-    PrintLib.puts(
-      "Stock value: ",
-      number_with_delimiter(result[:stock_value].round),
-    )
-    PrintLib.puts(
-      "Total value: ",
-      number_with_delimiter(result[:total_value].round),
-    )
-    PrintLib.puts(
-      "Total profit: ",
-      number_with_delimiter(result[:total_profit].round),
-      " (",
-      number_with_delimiter(result[:total_profit_percent].round),
-      "%)",
-    )
-    PrintLib.newline
-  end
-
-  def self.report(
-      strategy:,
-      strategy_options:,
-      trades_by_ticker:,
-      result_by_ticker:,
-      result_aggregate:,
-      options: {})
-    PrintLib.h1(
-      strategy.to_s.gsub("_", " "),
-      " (",
-      strategy_options.to_a.map do |option|
-        option.join(": ")
-      end.join(", "),
-      ")",
-    )
-
-    result_by_ticker.each do |ticker, result|
-      report_ticker(
-        ticker: ticker,
-        trades: trades_by_ticker[ticker],
-        result: result_by_ticker[ticker],
-        options: options,
-      )
-    end if options[:show_individual_results]
-
-    PrintLib.h2("Aggregate")
-    PrintLib.puts("Number of buys: ", result_aggregate[:n_buys][:sum])
-    PrintLib.puts(
-      "Cash spent: ",
-      number_with_delimiter(result_aggregate[:cash_spent][:sum].round),
-    )
-    PrintLib.puts(
-      "Cash earned: ",
-      number_with_delimiter(result_aggregate[:cash_earned][:sum].round),
-    )
-    PrintLib.puts(
-      "Stock value: ",
-      number_with_delimiter(result_aggregate[:stock_value][:sum].round),
-    )
-    PrintLib.puts(
-      "Total value: ",
-      number_with_delimiter(result_aggregate[:total_value][:sum].round),
-    )
-    PrintLib.puts(
-      "Total profit: ",
-      number_with_delimiter(result_aggregate[:total_profit][:sum].round),
-      " (",
-      number_with_delimiter(result_aggregate[:total_profit_percent][:avg].round),
-      "%)",
-    )
-    PrintLib.newline
   end
 end

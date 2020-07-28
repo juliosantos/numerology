@@ -24,8 +24,6 @@ require "./trading_strategies.rb"
 
 PrintLib.init
 
-Report.parameters
-
 tickers_data = Config.tickers.map do |ticker|
   TickerData.new(ticker).tap do |ticker_data|
     ticker_data.get_historical_data(Config.start_date, Config.end_date)
@@ -38,8 +36,8 @@ tickers_data = Config.tickers.map do |ticker|
   end
 end
 
-report = Report.new(tickers_data)
-report.baseline_performance
+Report.parameters
+Report.baseline_performance(tickers_data)
 
 TradingStrategies.execute(
   strategy: :buy_every_panic_and_sell_at_target,
