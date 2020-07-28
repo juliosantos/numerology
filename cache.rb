@@ -1,6 +1,4 @@
 module Cache
-  CACHE_DIR = "cache/"
-
   def self.get(key, &block)
     if File.exists?(file_path(key))
       JSON.parse(File.read(file_path(key)))
@@ -12,6 +10,6 @@ module Cache
   end
 
   def self.file_path(ticker)
-    CACHE_DIR + ticker
+    Config.api_cache_path + ticker
   end
 end

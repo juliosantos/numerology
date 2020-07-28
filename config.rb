@@ -1,21 +1,8 @@
 Dotenv.overload
 
-binding.pry
 class Config
-  def self.print_lib_stdout
-    ENV["PRINT_LIB_STDOUT"] == "1"
-  end
-
-  def self.print_lib_file
-    ENV["PRINT_LIB_FILE"] == "1"
-  end
-
   def self.tickers
     ENV["TICKERS"].split.sort
-  end
-
-  def self.verbose_tickers
-    ENV["VERBOSE_TICKERS"] == "1"
   end
 
   def self.start_date
@@ -30,23 +17,19 @@ class Config
     nil
   end
 
-  def self.n_lookback_days
-    ENV["N_LOOKBACK_DAYS"].to_i
-  end
-
-  def self.n_streak_days
-    ENV["N_STREAK_DAYS"].to_i
-  end
-
-  def self.target_avg_change
-    ENV["TARGET_AVG_CHANGE"].to_f
-  end
-
-  def self.sell_gain_target
-    ENV["SELL_GAIN_TARGET"].to_i
-  end
-
   def self.method_missing(*args)
-    method = ENV[args[0].to_s.upcase]
+    value = ENV[args[0].to_s.upcase]
+
+    if value.nil?
+      super
+    elsif value == "TRUE"
+      true
+    elsif value.match /\d+/
+      value.to_i
+    elsif value.match /\.?\d+\.?\d+/
+      value.to_f
+    else
+      value
+    end
   end
 end
