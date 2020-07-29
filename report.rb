@@ -1,4 +1,6 @@
 module Report
+  extend ActionView::Helpers::NumberHelper
+
   def self.parameters
     PrintLib.h1 "Parameters"
 
@@ -9,12 +11,12 @@ module Report
       "Tickers: ",
       Config.tickers.map do |ticker|
         PrintLib.ticker(ticker)
-      end.compact.join(", ")
+      end.compact.join(", "),
     )
     PrintLib.newline
 
     PrintLib.h2 "Panic model:"
-    %w|n_lookback_days n_streak_days target_avg_change|.map do |param_name|
+    %w[n_lookback_days n_streak_days target_avg_change].map do |param_name|
       PrintLib.puts param_name, ": ", Config.send(param_name)
     end
     PrintLib.newline
@@ -51,17 +53,22 @@ module Report
     PrintLib.newline
   end
 
-
   module TradingStrategies
+    extend ActionView::Helpers::NumberHelper
+
     def self.print(
-        strategy:,
-        strategy_options:,
-        trades_by_ticker:,
-        result_by_ticker:,
-        result_aggregate:,
-        options: {})
+      strategy:,
+      strategy_options:,
+      trades_by_ticker:,
+      result_by_ticker:,
+      result_aggregate:,
+      options: {}
+    )
+      options[:show_trades] ||= false
+      options[:show_individual_results] ||= false
+
       PrintLib.h1(
-        strategy.to_s.gsub("_", " "),
+        strategy.to_s.tr("_", " "),
         " (",
         strategy_options.to_a.map do |option|
           option.join(": ")
@@ -69,14 +76,17 @@ module Report
         ")",
       )
 
-      result_by_ticker.each do |ticker, result|
-        print_ticker(
-          ticker: ticker,
-          trades: trades_by_ticker[ticker],
-          result: result_by_ticker[ticker],
-          options: options,
-        )
-      end if options[:show_individual_results]
+      if options[:show_individual_results]
+        # FIXME this is derpy, refactor
+        result_by_ticker.each_key do |ticker|
+          print_ticker(
+            ticker: ticker,
+            trades: trades_by_ticker[ticker],
+            result: result_by_ticker[ticker],
+            options: options,
+          )
+        end
+      end
 
       PrintLib.h2("Aggregate")
       PrintLib.puts("Number of buys: ", result_aggregate[:n_buys][:sum])
@@ -144,9 +154,9 @@ module Report
     end
 
     def print_trades(trades:)
-      trades.sort_by{ |t| t[:date] }.each_with_index do |trade, index|
+      trades.sort_by { |t| t[:date] }.each_with_index do |trade, index|
         PrintLib.puts(
-         (index + 1).to_s.rjust(trades.size.to_s.size),
+          (index + 1).to_s.rjust(trades.size.to_s.size),
           ". ",
           trade[:type].to_s.upcase,
           " ",

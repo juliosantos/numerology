@@ -1,26 +1,13 @@
-require "bundler/inline"
-
-gemfile do
-  source "https://rubygems.org"
-
-  gem "httparty"
-  gem "dotenv"
-  gem "json"
-  gem "pry"
-  gem "actionview"
-end
-
-require "dotenv"
 require "json"
 require "pry"
 require "action_view"
 
-require "./config.rb"
-require "./math_lib.rb"
-require "./print_lib.rb"
-require "./ticker_data.rb"
-require "./report.rb"
-require "./trading_strategies.rb"
+require "./config"
+require "./math_lib"
+require "./print_lib"
+require "./ticker_data"
+require "./report"
+require "./trading_strategies"
 
 PrintLib.init
 
@@ -39,7 +26,7 @@ end
 Report.parameters
 Report.baseline_performance(tickers_data)
 
-TradingStrategies.execute(
+ts1 = TradingStrategies.execute(
   strategy: :buy_every_panic_and_sell_at_target,
   tickers_data: tickers_data,
   strategy_options: {
@@ -47,21 +34,24 @@ TradingStrategies.execute(
     sell_gain_target: Config.sell_gain_target,
   },
 )
+Report::TradingStrategies.print(ts1)
 
-TradingStrategies.execute(
+ts2 = TradingStrategies.execute(
   strategy: :buy_every_panic_and_hold,
   tickers_data: tickers_data,
   strategy_options: {
     rest_days: Config.rest_days,
   },
 )
+Report::TradingStrategies.print(ts2)
 
-TradingStrategies.execute(
+ts3 = TradingStrategies.execute(
   strategy: :buy_every_n_days_and_hold,
   tickers_data: tickers_data,
   strategy_options: {
     n_days: Config.buy_n_days,
   },
 )
+Report::TradingStrategies.print(ts3)
 
 PrintLib.end

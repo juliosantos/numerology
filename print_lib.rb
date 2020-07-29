@@ -18,7 +18,7 @@ module PrintLib
     "UNH" => "UnitedHealth Group",
     "WYNN" => "Wynn Resorts",
     "XOM" => "Exxon Mobil",
-  }
+  }.freeze
 
   @current_indent_level = 0
 
@@ -31,10 +31,11 @@ module PrintLib
   end
 
   def self.h(
-      *content,
-      h_char: "#",
-      h_level: 1,
-      h_newlines_suffix: 1)
+    *content,
+    h_char: "#",
+    h_level: 1,
+    h_newlines_suffix: 1
+  )
     h_indent_level = h_level - 1
     next_indent_level = h_level
 
@@ -47,8 +48,8 @@ module PrintLib
       indent_count: h_indent_level,
     )
 
-    h_newlines_suffix.times{ newline }
-      
+    h_newlines_suffix.times { newline }
+
     @current_indent_level = next_indent_level
   end
 
@@ -62,15 +63,15 @@ module PrintLib
         [
           Config.start_date,
           Config.end_date,
-        ].map{ |date| date.strftime("%Y%m%d") },
+        ].map { |date| date.strftime("%Y%m%d") },
         Config.tickers.join("+"),
         Time.now.to_i,
-      ].flatten.join(":").gsub(/\./, "_")
+      ].flatten.join(":").tr(".", "_")
   end
 
   # TODO make this return selg to make things e.g. newlines eady to do
   def self.puts(*content, indent_count: nil, indent_size: 2, indent_char: " ")
-    if indent_change = indent_count.to_s.match(/^([+-]\d+)/)&.send(:[], 1)
+    if (indent_change = indent_count.to_s.match(/^([+-]\d+)/)&.send(:[], 1))
       indent_count = @current_indent_level + indent_change.to_i
     else
       indent_count ||= @current_indent_level
@@ -83,7 +84,6 @@ module PrintLib
 
     Kernel.puts(indented_string) if Config.print_lib_stdout
 
-
     if Config.print_lib_file
       File.open(filename, "a") do |file|
         file.puts indented_string
@@ -93,19 +93,17 @@ module PrintLib
 
   def self.init
     if Config.print_lib_file && (dir = Config.print_lib_file_path)
-      Dir.mkdir(dir) unless Dir.exists?(dir)
+      Dir.mkdir(dir) unless Dir.exist?(dir)
     end
   end
 
   def self.end
-    if Config.print_lib_file
-      Kernel.puts "\n*** written to #{filename}"
-    end
+    Kernel.puts "\n*** written to #{filename}" if Config.print_lib_file
   end
 
   def self.method_missing(*args)
-    if h_level_match = args[0].match(/^h([1-9]+)$/)
-      h(args[1..-1], h_level: h_level_match[1].to_i)
+    if (h_level_match = args[0].match(/^h([1-9]+)$/))
+      h(args[1..], h_level: h_level_match[1].to_i)
     else
       super
     end

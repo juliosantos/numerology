@@ -1,5 +1,5 @@
-require "./api.rb"
-require "./cache.rb"
+require "./api"
+require "./cache"
 
 class TickerData
   attr_reader :ticker, :days, :start_date, :end_date, :avg_gain_horizon
@@ -20,12 +20,12 @@ class TickerData
     calculate_avg_gain_horizon
   end
 
-  def get_historical_data(start_date=nil, end_date=nil)
+  def get_historical_data(start_date = nil, end_date = nil)
     @days = Cache.get("historical_data_#{ticker}") do
       API.get_historical_data(ticker)
     end.reject do |day|
-      Date.parse(day["date"]) < @start_date if @start_date
-      Date.parse(day["date"]) > @start_date if @end_date
+      Date.parse(day["date"]) < start_date if start_date
+      Date.parse(day["date"]) > end_date if end_date
     end.each_with_index do |day, index|
       day["index"] = index
     end
@@ -47,17 +47,28 @@ class TickerData
     days.each do |day|
       next if day["index"] < n_streak_days + n_lookback_days
 
-      day["panic"] = true if (MathLib.average(days[(day["index"] - n_streak_days)..day["index"]-1].map{ |day| day["n_day_percentage_change"] }) < target_avg_change) && (days[(day["index"] - n_streak_days)..day["index"]].each_slice(2).map{|a,b| b.nil? ? true : a["close"] > b["close"]}.uniq == [true])
+      change_below_target = MathLib.average(
+        days[(day["index"] - n_streak_days)..day["index"] - 1].map do |d|
+          d["n_day_percentage_change"]
+        end,
+      ) < target_avg_change
+
+      monotonic_decrease = days[(day["index"] - n_streak_days)..day["index"]]
+        .each_slice(2)
+        .map { |a, b| b.nil? ? true : a["close"] > b["close"] }
+        .uniq == [true]
+
+      day["panic"] = true if change_below_target && monotonic_decrease
     end
   end
 
   def panic_days
-    days.select{ |day| day["panic"] }
+    days.select { |day| day["panic"] }
   end
 
   def calculate_gain_horizons_for_panic_days(sell_gain_target)
     panic_days.each do |panic_day|
-      panic_day["gain_horizon_day"] = @days[panic_day["index"]..-1].find do |gain_horizon_day|
+      panic_day["gain_horizon_day"] = @days[panic_day["index"]..].find do |gain_horizon_day|
         MathLib.percent_difference(
           panic_day["close"],
           gain_horizon_day["close"],
@@ -71,24 +82,23 @@ class TickerData
   # 2. Consider all buy days, but then how do I average?
   def calculate_avg_gain_horizon
     # TODO option 1
-    #@avg_gain_horizon = MathLib.average(panic_days.select do |panic_day|
-    #  panic_day["gain_horizon_day"]
-    #end.map do |panic_day|
-    #  Date.parse(panic_day["gain_horizon_day"]["date"]) - Date.parse(panic_day["date"])
-    #end)
+    # @avg_gain_horizon = MathLib.average(panic_days.select do |panic_day|
+    #   panic_day["gain_horizon_day"]
+    # end.map do |panic_day|
+    #   Date.parse(panic_day["gain_horizon_day"]["date"]) - Date.parse(panic_day["date"])
+    # end)
 
     # TODO option 2
     # assuming you can always sell, but only in 5 years
-    #@avg_gain_horizon = MathLib.average(panic_days.map do |panic_day|
-    #  if panic_day["gain_horizon_day"]
-    #    Date.parse(panic_day["gain_horizon_day"]["date"]) - Date.parse(panic_day["date"])
-    #  else
-    #    5 * avg_trading_days_per_year
-    #  end
-    #end)
+    # @avg_gain_horizon = MathLib.average(panic_days.map do |panic_day|
+    #   if panic_day["gain_horizon_day"]
+    #     Date.parse(panic_day["gain_horizon_day"]["date"]) - Date.parse(panic_day["date"])
+    #   else
+    #     5 * avg_trading_days_per_year
+    #   end
+    # end)
 
-    panic_days_with_horizon,
-    panic_days_without_horizon = panic_days.partition do |panic_day|
+    panic_days_with_horizon = panic_days.select do |panic_day|
       panic_day["gain_horizon_day"]
     end
 
@@ -97,11 +107,11 @@ class TickerData
         panic_days_with_horizon.map do |panic_day|
           [
             panic_day["gain_horizon_day"]["date"],
-            panic_day["date"]
+            panic_day["date"],
           ].map do |date|
             Date.parse(date)
           end.reduce(:-)
-        end
+        end,
       ),
       "percent_with_horizon" => MathLib.percentage(
         panic_days_with_horizon.size,
@@ -110,13 +120,13 @@ class TickerData
     }
   end
 
-  def baseline(avg_days=30)
+  def baseline(avg_days = 30)
     @baseline ||= begin
       avg_start_price = MathLib.average(
-        days.first(avg_days).map { |day| day["close"] }
+        days.first(avg_days).map { |day| day["close"] },
       )
       avg_end_price = MathLib.average(
-        days.last(avg_days).map { |day| day["close"] }
+        days.last(avg_days).map { |day| day["close"] },
       )
 
       {

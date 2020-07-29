@@ -5,7 +5,7 @@ module API
     response = HTTParty.get("https://cloud.iexapis.com/v1/stock/#{ticker}/chart/max", query: {
       chartCloseOnly: true,
       chartByDay: true,
-      token: ENV["IEXCLOUD_TOKEN"]
+      token: ENV["IEXCLOUD_TOKEN"],
     })
 
     response.parsed_response

@@ -1,11 +1,11 @@
 module Cache
   def self.get(key, &block)
-    if File.exists?(file_path(key))
+    if File.exist?(file_path(key))
       JSON.parse(File.read(file_path(key)))
     else
-      cache = yield block
-      File.write(file_path(key), cache.to_json)
-      return cache
+      yield(block).tap do |result|
+        File.write(file_path(key), result.to_json)
+      end
     end
   end
 
