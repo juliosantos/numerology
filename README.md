@@ -5,3 +5,6 @@ Run `bundle`. Copy `.env.example` into a new `.env` file. Then, set your paramet
 
 ## Testing
 Run `bundle exec rake`
+
+## Linting
+Run `bundle exec rubocop`
