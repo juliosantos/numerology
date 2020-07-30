@@ -4,6 +4,8 @@ module MathLib
   end
 
   def self.percent_difference(before, after)
+    return 0 if before == after
+
     (after.to_f - before) / before.to_f.abs * 100
   end
 
