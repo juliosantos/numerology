@@ -1,7 +1,9 @@
 # numerology
 
 ## Running
-Run `bundle`. Copy `.env.example` into a new `.env` file. Then, set your parameters, and run `ruby main.rb`
+1. Run `bundle`
+1. Copy `.env.example` into a new `.env` file and set your parameters
+1. Run `bundle exec ruby main.rb`
 
 ## Testing
 Run `bundle exec rake`
