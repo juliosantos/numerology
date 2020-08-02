@@ -26,17 +26,22 @@ class TickerDataTest < Minitest::Test
 
       assert_equal(3 * DAYS_IN_YEAR[:total], @ticker_data.days.size)
 
-      @ticker_data.clamp!(start_date: "2009-07-01", end_date: "2011-06-30")
-      assert_equal(2 * DAYS_IN_YEAR[:total], @ticker_data.days.size)
+      [
+        %w[2009-07-01 2011-06-30],
+        %w[2010-01-01 2011-06-30],
+        %w[2010-07-01 2011-06-30],
+        %w[2009-07-01 2011-06-30],
+      ].each do |start_date, end_date|
+        @ticker_data.days = make_days("2009-01-01", "2011-12-31")
+        @ticker_data.clamp!(start_date: start_date, end_date: end_date)
 
-      @ticker_data.clamp!(start_date: "2010-01-01", end_date: "2011-06-30")
-      assert_equal(DAYS_IN_YEAR[:total] + DAYS_IN_YEAR[:h1], @ticker_data.days.size)
-
-      @ticker_data.clamp!(start_date: "2010-01-01", end_date: "2011-06-30")
-      assert_equal(DAYS_IN_YEAR[:total] + DAYS_IN_YEAR[:h1], @ticker_data.days.size)
-
-      @ticker_data.clamp!(start_date: "2010-07-01", end_date: "2011-06-30")
-      assert_equal(DAYS_IN_YEAR[:h2] + DAYS_IN_YEAR[:h1], @ticker_data.days.size)
+        assert_equal(
+          (Date.parse(start_date)..Date.parse(end_date)).count,
+          @ticker_data.days.size,
+        )
+        assert_equal(start_date, @ticker_data.days.first["date"])
+        assert_equal(end_date, @ticker_data.days.last["date"])
+      end
     end
 
     def test_nils

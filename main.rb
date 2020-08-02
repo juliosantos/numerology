@@ -6,17 +6,36 @@ require_relative "lib/trading_strategies"
 
 PrintLib.init
 
+# TODO these calculations will be negatively affected if there are missing
+# periods in the history of a stock; perhaps I can start by raising an alarm
+# if a ticker suffers from this
+
+# TODO clamping isn't working properly, e.g. clamping AAPL to
+# START_DATE=2012.08.23
+# END_DATE=2013.08.23
+# yields 2013-01-02 to 2013-12-31
+# XXX this is because we're comparing dots and dashes lol
+# fixed in .env
+# so, we probably want 2 things:
+# 1. Config to explode when data is not in right format
+# 2. API importer to do the same thing
+
 history_by_ticker = Config.tickers.map do |ticker|
-  TickerData.new(ticker).tap do |ticker_data|
+  TickerData.new(ticker).then do |ticker_data|
     ticker_data.load_history
+
     ticker_data.clamp!(start_date: Config.start_date, end_date: Config.end_date)
+    next if ticker_data.days.empty?
+
     ticker_data.analyse(
       Config.n_lookback_days,
       Config.n_streak_days,
       Config.target_avg_change,
     )
+
+    ticker_data
   end
-end
+end.compact
 
 # TODO: which history enhancers to run?
 # TickerData contains data-enhancing methods like analyse,
