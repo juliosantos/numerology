@@ -1,5 +1,6 @@
 require "minitest/autorun"
-require "./config"
+
+require "config"
 
 class ConfigTest < Minitest::Test
   class Tickers < ConfigTest
@@ -10,47 +11,13 @@ class ConfigTest < Minitest::Test
       ].each do |expected_result, env|
         ENV["TICKERS"] = env
 
-        assert_equal expected_result, Config.tickers
+        assert_equal(expected_result, Config.tickers)
       end
     end
-  end
 
-  class StartDate < ConfigTest
-    def test_works
-      ENV["START_DATE"] = "2010.01.01"
-
-      assert_equal(
-        Date.parse("2010.01.01").to_time.to_i,
-        Config.start_date.to_time.to_i,
-      )
-    end
-
-    def test_empty
-      ENV.delete("START_DATE")
-
-      assert_nil Config.start_date
-
-      ENV["START_DATE"] = ""
-      assert_nil Config.start_date
-    end
-  end
-
-  class EndDate < ConfigTest
-    def test_works
-      ENV["END_DATE"] = "2010.01.01"
-
-      assert_equal(
-        Date.parse("2010.01.01").to_time.to_i,
-        Config.end_date.to_time.to_i,
-      )
-    end
-
-    def test_empty
-      ENV.delete("END_DATE")
-      assert_nil Config.end_date
-
-      ENV["END_DATE"] = ""
-      assert_nil Config.end_date
+    def test_uniq
+      ENV["TICKERS"] = "A A B A"
+      assert_equal(%w[A B], Config.tickers)
     end
   end
 

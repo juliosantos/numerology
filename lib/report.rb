@@ -1,3 +1,9 @@
+require "action_view"
+
+require_relative "config"
+require_relative "math_lib"
+require_relative "print_lib"
+
 module Report
   extend ActionView::Helpers::NumberHelper
 
@@ -26,10 +32,10 @@ module Report
     PrintLib.newline
   end
 
-  def self.baseline_performance(tickers_data)
+  def self.baseline_performance(history_by_ticker)
     PrintLib.h1 "Baseline performance"
 
-    ticker_performances = tickers_data.map do |ticker_data|
+    ticker_performances = history_by_ticker.map do |ticker_data|
       ticker_data.baseline.tap do |baseline|
         PrintLib.puts(
           ticker_data.ticker,

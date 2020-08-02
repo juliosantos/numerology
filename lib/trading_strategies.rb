@@ -1,15 +1,16 @@
+require_relative "core_extensions"
+require_relative "math_lib"
+
 module TradingStrategies
   def self.buy_every_panic_and_sell_at_target(
-    tickers_data,
+    history_by_ticker,
     rest_days:,
     sell_gain_target:
   )
     cash_amount = 1000
 
-    tickers_data.each_with_object({}) do |ticker_data, memo|
-      buy_days = stagger_days(ticker_data.panic_days, rest_days: rest_days)
-
-      buy_trades = buy_days.map do |day|
+    history_by_ticker.each_with_object({}) do |ticker_data, memo|
+      buy_trades = ticker_data.panic_days.stagger(rest_days).map do |day|
         {
           ticker: ticker_data.ticker,
           type: :buy,
@@ -22,14 +23,7 @@ module TradingStrategies
       end
 
       sell_trades = buy_trades.map do |buy_trade|
-        sell_day = ticker_data.days[buy_trade[:day]["index"]..].find do |future_day|
-          MathLib.percent_difference(
-            buy_trade[:stock_price],
-            future_day["close"],
-          ) >= sell_gain_target
-        end
-
-        next unless sell_day
+        next unless (sell_day = ticker_data.find_gain_day(buy_trade[:day], sell_gain_target))
 
         {
           ticker: ticker_data.ticker,
@@ -46,51 +40,47 @@ module TradingStrategies
     end
   end
 
-  def self.buy_every_panic_and_hold(tickers_data, rest_days:)
+  def self.buy_every_panic_and_hold(history_by_ticker, rest_days:)
     cash_amount = 1000
 
-    tickers_data.each_with_object({}) do |ticker_data, memo|
-      buy_days = stagger_days(ticker_data.panic_days, rest_days: rest_days)
-
-      buy_trades = buy_days.map do |day|
-        {
-          ticker: ticker_data.ticker,
-          type: :buy,
-          day: day,
-          date: day["date"],
-          stock_price: day["close"],
-          stock_amount: cash_amount.to_f / day["close"],
-          cash_spent: cash_amount,
-        }
-      end
-
-      memo[ticker_data.ticker] = buy_trades
+    history_by_ticker.each_with_object({}) do |ticker_data, memo|
+      memo[ticker_data.ticker] =
+        ticker_data.panic_days.stagger(rest_days).map do |day|
+          {
+            ticker: ticker_data.ticker,
+            type: :buy,
+            day: day,
+            date: day["date"],
+            stock_price: day["close"],
+            stock_amount: cash_amount.to_f / day["close"],
+            cash_spent: cash_amount,
+          }
+        end
     end
   end
 
-  def self.buy_every_n_days_and_hold(tickers_data, n_days:)
+  def self.buy_every_n_days_and_hold(history_by_ticker, n_days:)
     cash_amount = 1000
 
-    tickers_data.each_with_object({}) do |ticker_data, memo|
-      buy_trades = ticker_data.days.each_slice(n_days).map(&:last).map do |day|
-        {
-          ticker: ticker_data.ticker,
-          type: :buy,
-          day: day,
-          date: day["date"],
-          stock_price: day["close"],
-          stock_amount: cash_amount.to_f / day["close"],
-          cash_spent: cash_amount,
-        }
-      end
-
-      memo[ticker_data.ticker] = buy_trades
+    history_by_ticker.each_with_object({}) do |ticker_data, memo|
+      memo[ticker_data.ticker] = ticker_data.days.stagger(n_days)
+        .map do |day|
+          {
+            ticker: ticker_data.ticker,
+            type: :buy,
+            day: day,
+            date: day["date"],
+            stock_price: day["close"],
+            stock_amount: cash_amount.to_f / day["close"],
+            cash_spent: cash_amount,
+          }
+        end
     end
   end
 
-  def self.execute(strategy:, tickers_data:, strategy_options:)
-    trades_by_ticker = send(strategy, tickers_data, strategy_options)
-    result_by_ticker = ticker_result(trades_by_ticker, tickers_data)
+  def self.execute(strategy:, history_by_ticker:, strategy_options:)
+    trades_by_ticker = send(strategy, history_by_ticker, strategy_options)
+    result_by_ticker = ticker_result(trades_by_ticker, history_by_ticker)
     result_aggregate = aggregate_result(result_by_ticker)
 
     # TODO: the next concept is not quite "forecast", but something
@@ -111,26 +101,21 @@ module TradingStrategies
     }
   end
 
-  def self.stagger_days(days, rest_days: 0)
-    last_chosen_day = days[0]
-
-    days[1..].select do |day|
-      last_chosen_day = day if day["index"] - last_chosen_day["index"] > rest_days
-    end
-  end
-
-  def self.ticker_result(trades_by_ticker, tickers_data)
+  def self.ticker_result(trades_by_ticker, history_by_ticker)
     trades_by_ticker.each_with_object({}) do |(ticker, trades), memo|
       buy_trades, sell_trades = trades.partition { |t| t[:type] == :buy }
+
       n_buys, n_sells = [buy_trades, sell_trades].map(&:size)
+
       cash_spent = buy_trades.map { |t| t[:cash_spent] }.sum
       cash_earned = sell_trades.map { |t| t[:cash_earned] }.sum
       cash_profit = cash_earned - cash_spent
       cash_profit_percent = MathLib.percent_difference(cash_spent, cash_earned)
+
       stock_held = [buy_trades, sell_trades].map do |ts|
         ts.map { |t| t[:stock_amount] }.sum
       end.reduce(:-)
-      stock_value = stock_held * tickers_data.find do |ticker_data|
+      stock_value = stock_held * history_by_ticker.find do |ticker_data|
         ticker_data.ticker == ticker
       end.days.last["close"]
 

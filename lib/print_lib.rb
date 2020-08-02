@@ -1,3 +1,5 @@
+require_relative "config"
+
 module PrintLib
   HUMAN_TICKERS = {
     "AAL" => "American Airlines",
@@ -63,7 +65,7 @@ module PrintLib
         [
           Config.start_date,
           Config.end_date,
-        ].map { |date| date.strftime("%Y%m%d") },
+        ].map { |date| date.delete("-") },
         Config.tickers.join("+"),
         Time.now.to_i,
       ].flatten.join(":").tr(".", "_")

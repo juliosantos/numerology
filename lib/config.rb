@@ -1,18 +1,10 @@
-require "date"
 require "dotenv"
+
 Dotenv.overload
 
 class Config
   def self.tickers
-    ENV["TICKERS"].split.sort
-  end
-
-  def self.start_date
-    Date.parse ENV["START_DATE"] unless ENV["START_DATE"].nil? || ENV["START_DATE"].empty?
-  end
-
-  def self.end_date
-    Date.parse(ENV["END_DATE"]) unless ENV["END_DATE"].nil? || ENV["END_DATE"].empty?
+    ENV["TICKERS"].split.uniq.sort
   end
 
   def self.method_missing(method_name, *args, &block)

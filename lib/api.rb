@@ -6,7 +6,7 @@ module API
       chartCloseOnly: true,
       chartByDay: true,
       token: ENV["IEXCLOUD_TOKEN"],
-    })
+    }).parsed_response
 
     response.parsed_response
   end

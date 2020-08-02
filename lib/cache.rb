@@ -1,3 +1,7 @@
+require "json"
+
+require_relative "config"
+
 module Cache
   def self.get(key, &block)
     if File.exist?(file_path(key))
