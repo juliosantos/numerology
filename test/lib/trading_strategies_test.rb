@@ -95,8 +95,8 @@ class TradingStrategiesTest < Minitest::Test
               buy_trades = trades.select { |t| t[:type] == :buy }
               sell_trades = trades.select { |t| t[:type] == :sell }
 
-              cash_spent = buy_trades.map { |t| t[:cash_spent] }.sum
-              cash_earned = sell_trades.map { |t| t[:cash_earned] }.sum
+              cash_spent = buy_trades.sum { |t| t[:cash_spent] }
+              cash_earned = sell_trades.sum { |t| t[:cash_earned] }
               cash_profit = cash_earned - cash_spent
               cash_profit_percent = MathLib.percent_difference(cash_spent, cash_earned)
 
@@ -241,7 +241,7 @@ class TradingStrategiesTest < Minitest::Test
             .then do |aggregate_result|
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:n_buys] }.sum,
+                  results.sum { |r| r[:n_buys] },
                   MathLib.average(results.map { |r| r[:n_buys] }),
                 ]
               end.then do |n_buys_sum, n_buys_avg|
@@ -257,7 +257,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:n_sells] }.sum,
+                  results.sum { |r| r[:n_sells] },
                   MathLib.average(results.map { |r| r[:n_sells] }),
                 ]
               end.then do |n_sells_sum, n_sells_avg|
@@ -273,7 +273,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:cash_spent] }.sum,
+                  results.sum { |r| r[:cash_spent] },
                   MathLib.average(results.map { |r| r[:cash_spent] }),
                 ]
               end.then do |cash_spent_sum, cash_spent_avg|
@@ -289,7 +289,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:cash_earned] }.sum,
+                  results.sum { |r| r[:cash_earned] },
                   MathLib.average(results.map { |r| r[:cash_earned] }),
                 ]
               end.then do |cash_earned_sum, cash_earned_avg|
@@ -305,7 +305,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:cash_profit] }.sum,
+                  results.sum { |r| r[:cash_profit] },
                   MathLib.average(results.map { |r| r[:cash_profit] }),
                 ]
               end.then do |cash_profit_sum, cash_profit_avg|
@@ -321,7 +321,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:stock_value] }.sum,
+                  results.sum { |r| r[:stock_value] },
                   MathLib.average(results.map { |r| r[:stock_value] }),
                 ]
               end.then do |stock_value_sum, stock_value_avg|
@@ -337,7 +337,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:total_value] }.sum,
+                  results.sum { |r| r[:total_value] },
                   MathLib.average(results.map { |r| r[:total_value] }),
                 ]
               end.then do |total_value_sum, total_value_avg|
@@ -353,7 +353,7 @@ class TradingStrategiesTest < Minitest::Test
 
               result_by_ticker.values.then do |results|
                 [
-                  results.map { |r| r[:total_profit] }.sum,
+                  results.sum { |r| r[:total_profit] },
                   MathLib.average(results.map { |r| r[:total_profit] }),
                 ]
               end.then do |total_profit_sum, total_profit_avg|

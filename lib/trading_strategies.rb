@@ -107,8 +107,8 @@ module TradingStrategies
 
       n_buys, n_sells = [buy_trades, sell_trades].map(&:size)
 
-      cash_spent = buy_trades.map { |t| t[:cash_spent] }.sum
-      cash_earned = sell_trades.map { |t| t[:cash_earned] }.sum
+      cash_spent = buy_trades.sum { |t| t[:cash_spent] }
+      cash_earned = sell_trades.sum { |t| t[:cash_earned] }
       cash_profit = cash_earned - cash_spent
       cash_profit_percent = MathLib.percent_difference(cash_spent, cash_earned)
 
