@@ -32,10 +32,10 @@ class ConfigTest < Minitest::Test
 
     def test_trues
       ENV["DERP"] = "true"
-      assert_equal true, Config.derp
+      assert Config.derp
 
       ENV["DERP"] = "TRUE"
-      assert_equal true, Config.derp
+      assert Config.derp
 
       ENV["DERP"] = "untrue"
       refute_equal true, Config.derp

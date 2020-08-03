@@ -133,10 +133,16 @@ class MathLibTest < Minitest::Test
     def test_limit
       range = 1..100
 
-      assert MathLib.combinations([range], limit: nil).size == range.size
+      assert_equal(
+        MathLib.combinations([range], limit: nil).size,
+        range.size,
+      )
 
       (1..20).each do |limit|
-        assert(MathLib.combinations([range], limit: limit).size == limit)
+        assert(
+          MathLib.combinations([range], limit: limit).size,
+          limit,
+        )
       end
     end
   end
