@@ -161,7 +161,8 @@ class TickerDataTest < Minitest::Test
       days = (1..100).to_a
       @ticker_data.days = days
 
-      MathLib.combinations([1..30, 1..30])
+      MathLib.random_combinations([1..30, 1..30])
+        .take(100)
         .each do |n_lookback_days, n_streak_days|
           streaks = @ticker_data
             .streaks(n_lookback_days, n_streak_days)
@@ -209,57 +210,55 @@ class TickerDataTest < Minitest::Test
     end
 
     def test_integration
-      # FIXME i'm still not convinced; let's roll out a couple of fixtures
-      MathLib.combinations(
-        [1..60, 1..60, -99..-1, 1..1000],
-        limit: 100,
-      ).each do |n_lookback_days, n_streak_days, target_avg_change, initial_price|
-        @ticker_data.days =
-          Array.new(100) do |i|
-            MathLib.compound_interest(initial_price, 10, i)
-          end.then do |prices|
-            last_price = prices[-n_lookback_days - 1]
-            prices.concat(Array.new(100) do |i|
-              MathLib.compound_interest(last_price, target_avg_change - 1, i)
-            end)
-          end.then do |prices|
-            last_price = prices[-n_lookback_days - 1]
+      MathLib.random_combinations([1..60, 1..60, -99..-1, 1..1000])
+        .take(100)
+        .each do |n_lookback_days, n_streak_days, target_avg_change, initial_price|
+          @ticker_data.days =
+            Array.new(100) do |i|
+              MathLib.compound_interest(initial_price, 10, i)
+            end.then do |prices|
+              last_price = prices[-n_lookback_days - 1]
+              prices.concat(Array.new(100) do |i|
+                MathLib.compound_interest(last_price, target_avg_change - 1, i)
+              end)
+            end.then do |prices|
+              last_price = prices[-n_lookback_days - 1]
 
-            prices.concat(Array.new(100) do |i|
-              MathLib.compound_interest(last_price, -1, i)
-            end)
-          end.map do |price|
-            { "close" => price }
+              prices.concat(Array.new(100) do |i|
+                MathLib.compound_interest(last_price, -1, i)
+              end)
+            end.map do |price|
+              { "close" => price }
+            end
+
+          @ticker_data.calculate_percentage_change(n_lookback_days)
+
+          @ticker_data.tag_panic_days(
+            n_lookback_days,
+            n_streak_days,
+            target_avg_change,
+          )
+
+          @ticker_data.panic_days.each do |panic_day|
+            panic_day_index = @ticker_data.days.index(panic_day)
+
+            assert(
+              MathLib.average(
+                @ticker_data
+                  .days[panic_day_index - n_streak_days...panic_day_index]
+                  .map { |d| d["#{n_lookback_days}_day_percentage_change"] },
+              ) < target_avg_change,
+            )
+
+            assert(
+              MathLib.monotonic_decrease?(
+                @ticker_data
+                  .days[panic_day_index - n_streak_days...panic_day_index]
+                  .map { |day| day["close"] },
+              ),
+            )
           end
-
-        @ticker_data.calculate_percentage_change(n_lookback_days)
-
-        @ticker_data.tag_panic_days(
-          n_lookback_days,
-          n_streak_days,
-          target_avg_change,
-        )
-
-        @ticker_data.panic_days.each do |panic_day|
-          panic_day_index = @ticker_data.days.index(panic_day)
-
-          assert(
-            MathLib.average(
-              @ticker_data
-                .days[panic_day_index - n_streak_days...panic_day_index]
-                .map { |d| d["#{n_lookback_days}_day_percentage_change"] },
-            ) < target_avg_change,
-          )
-
-          assert(
-            MathLib.monotonic_decrease?(
-              @ticker_data
-                .days[panic_day_index - n_streak_days...panic_day_index]
-                .map { |day| day["close"] },
-            ),
-          )
         end
-      end
     end
   end
 

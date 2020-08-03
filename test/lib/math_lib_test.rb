@@ -115,34 +115,21 @@ class MathLibTest < Minitest::Test
     end
   end
 
-  class Combinations < MathLibTest
+  class YieldCombinations < MathLibTest
     def test_works
-      Array.new(4) do |i|
-        (start = (10**i))..start + rand(10**(i + 1) - 1)
-      end.then do |ranges|
-        assert(
-          MathLib
-            .combinations(ranges)
-            .transpose
-            .each_with_index
-            .all? { |values_in_range, i| values_in_range.all?(ranges[i]) },
-        )
-      end
-    end
-
-    def test_limit
-      range = 1..100
-
-      assert_equal(
-        MathLib.combinations([range], limit: nil).size,
-        range.size,
-      )
-
-      (1..20).each do |limit|
-        assert(
-          MathLib.combinations([range], limit: limit).size,
-          limit,
-        )
+      (0..10).each do |n_ranges|
+        Array.new(n_ranges) do |i|
+          (start = (10**i))..start + rand(10**(i + 1) - 1)
+        end.then do |ranges|
+          assert(
+            MathLib
+              .random_combinations(ranges)
+              .take(1000)
+              .transpose
+              .each_with_index
+              .all? { |values_in_range, i| values_in_range.all?(ranges[i]) },
+          )
+        end
       end
     end
   end

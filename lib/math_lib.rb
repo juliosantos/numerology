@@ -25,21 +25,9 @@ module MathLib
     initial_value * (1 + percent / 100.to_f)**n_periods
   end
 
-  # TODO perhaps I need a better name, since this isn't quite "combinations",
-  # but "a random assortment of combinations on which every number of each range
-  # appears at least once
-  def self.combinations(ranges, limit: nil)
-    ranges
-      .map(&:to_a)
-      .map do |array|
-        array.fill(
-          array.size,
-          ranges.map(&:size).max - array.size,
-        ) { array.compact.sample }
-      end.map(&:shuffle)
-      .transpose
-      .then do |combinations|
-        limit ? combinations.sample(limit) : combinations
-      end
+  def self.random_combinations(ranges)
+    Enumerator.new do |yielder|
+      loop { yielder << ranges.map(&method(:rand)) }
+    end
   end
 end

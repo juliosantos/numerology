@@ -66,73 +66,72 @@ class TradingStrategiesTest < Minitest::Test
 
   class TickerResult < TradingStrategiesTest
     def test_works
-      MathLib.combinations(
-        [1..1000, 1..1000, 1..1000, 1..1000],
-        limit: 100,
-      ).each do |n_trades, stock_amount, cash, last_price|
-        %w[DERP HERP].each_with_object({}) do |ticker, memo|
-          memo[ticker] = Array.new(n_trades) do
-            %i[buy sell].sample.then do |type|
-              {
-                ticker: ticker,
-                type: type,
-                stock_amount: stock_amount,
-                "cash_#{type == :buy ? "spent" : "earned"}".to_sym => cash,
-              }
-            end
-          end
-        end.then do |trades_by_ticker|
-          history_by_ticker = trades_by_ticker.keys.map do |ticker|
-            TickerData.new(ticker).tap do |ticker_data|
-              ticker_data.days = [{ "close" => last_price }]
-            end
-          end
-
-          TradingStrategies
-            .ticker_result(trades_by_ticker, history_by_ticker)
-            .each do |ticker, result|
-              trades = trades_by_ticker[ticker]
-              buy_trades = trades.select { |t| t[:type] == :buy }
-              sell_trades = trades.select { |t| t[:type] == :sell }
-
-              cash_spent = buy_trades.sum { |t| t[:cash_spent] }
-              cash_earned = sell_trades.sum { |t| t[:cash_earned] }
-              cash_profit = cash_earned - cash_spent
-              cash_profit_percent = MathLib.percent_difference(cash_spent, cash_earned)
-
-              stock_held = trades.reduce(0) do |memo, trade|
-                memo += trade[:stock_amount] if trade[:type] == :buy
-                memo -= trade[:stock_amount] if trade[:type] == :sell
-
-                memo
+      MathLib.random_combinations([1..1000, 1..1000, 1..1000, 1..1000])
+        .take(1000)
+        .each do |n_trades, stock_amount, cash, last_price|
+          %w[DERP HERP].each_with_object({}) do |ticker, memo|
+            memo[ticker] = Array.new(n_trades) do
+              %i[buy sell].sample.then do |type|
+                {
+                  ticker: ticker,
+                  type: type,
+                  stock_amount: stock_amount,
+                  "cash_#{type == :buy ? "spent" : "earned"}".to_sym => cash,
+                }
               end
-              stock_value = stock_held * history_by_ticker.find do |ticker_data|
-                ticker_data.ticker == ticker
-              end.days.last["close"]
-
-              total_value = cash_earned + stock_value
-              total_profit = total_value - cash_spent
-              total_profit_percent = MathLib.percent_difference(cash_spent, total_value)
-
-              assert(trades.all? { |t| %i[buy sell].include?(t[:type]) })
-
-              assert_equal(buy_trades.size, result[:n_buys])
-              assert_equal(sell_trades.size, result[:n_sells])
-
-              assert_equal(cash_spent, result[:cash_spent])
-              assert_equal(cash_earned, result[:cash_earned])
-              assert_equal(cash_profit, result[:cash_profit])
-              assert_equal(cash_profit_percent, result[:cash_profit_percent])
-
-              assert_equal(stock_held, result[:stock_held])
-              assert_equal(stock_value, result[:stock_value])
-
-              assert_equal(total_value, result[:total_value])
-              assert_equal(total_profit, result[:total_profit])
-              assert_equal(total_profit_percent, result[:total_profit_percent])
             end
+          end.then do |trades_by_ticker|
+            history_by_ticker = trades_by_ticker.keys.map do |ticker|
+              TickerData.new(ticker).tap do |ticker_data|
+                ticker_data.days = [{ "close" => last_price }]
+              end
+            end
+
+            TradingStrategies
+              .ticker_result(trades_by_ticker, history_by_ticker)
+              .each do |ticker, result|
+                trades = trades_by_ticker[ticker]
+                buy_trades = trades.select { |t| t[:type] == :buy }
+                sell_trades = trades.select { |t| t[:type] == :sell }
+
+                cash_spent = buy_trades.sum { |t| t[:cash_spent] }
+                cash_earned = sell_trades.sum { |t| t[:cash_earned] }
+                cash_profit = cash_earned - cash_spent
+                cash_profit_percent = MathLib.percent_difference(cash_spent, cash_earned)
+
+                stock_held = trades.reduce(0) do |memo, trade|
+                  memo += trade[:stock_amount] if trade[:type] == :buy
+                  memo -= trade[:stock_amount] if trade[:type] == :sell
+
+                  memo
+                end
+                stock_value = stock_held * history_by_ticker.find do |ticker_data|
+                  ticker_data.ticker == ticker
+                end.days.last["close"]
+
+                total_value = cash_earned + stock_value
+                total_profit = total_value - cash_spent
+                total_profit_percent = MathLib.percent_difference(cash_spent, total_value)
+
+                assert(trades.all? { |t| %i[buy sell].include?(t[:type]) })
+
+                assert_equal(buy_trades.size, result[:n_buys])
+                assert_equal(sell_trades.size, result[:n_sells])
+
+                assert_equal(cash_spent, result[:cash_spent])
+                assert_equal(cash_earned, result[:cash_earned])
+                assert_equal(cash_profit, result[:cash_profit])
+                assert_equal(cash_profit_percent, result[:cash_profit_percent])
+
+                assert_equal(stock_held, result[:stock_held])
+                assert_equal(stock_value, result[:stock_value])
+
+                assert_equal(total_value, result[:total_value])
+                assert_equal(total_profit, result[:total_profit])
+                assert_equal(total_profit_percent, result[:total_profit_percent])
+              end
+          end
         end
-      end
     end
 
     def test_with_fixture
@@ -214,185 +213,187 @@ class TradingStrategiesTest < Minitest::Test
 
   class AggregateResults < TradingStrategiesTest
     def test_works
-      MathLib.combinations(
+      MathLib.random_combinations(
         [0..100, 0..100, 0..100, 0..100,
          -100..100, -100..100, 0..100, 0..100,
          0..100, 0..100, 0..100],
-      ).each do |n_buys, n_sells, cash_spent, cash_earned,
+      )
+        .take(1000)
+        .each do |n_buys, n_sells, cash_spent, cash_earned,
                  cash_profit, cash_profit_percent, stock_held, stock_value,
                  total_value, total_profit, total_profit_percent|
-        %w[DERP HERP].each_with_object({}) do |ticker, memo|
-          memo[ticker] = {
-            n_buys: n_buys,
-            n_sells: n_sells,
-            cash_spent: cash_spent,
-            cash_earned: cash_earned,
-            cash_profit: cash_profit,
-            cash_profit_percent: cash_profit_percent,
-            stock_held: stock_held,
-            stock_value: stock_value,
-            total_value: total_value,
-            total_profit: total_profit,
-            total_profit_percent: total_profit_percent,
-          }
-        end.then do |result_by_ticker|
-          TradingStrategies
-            .aggregate_result(result_by_ticker)
-            .then do |aggregate_result|
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:n_buys] },
-                  MathLib.average(results.map { |r| r[:n_buys] }),
-                ]
-              end.then do |n_buys_sum, n_buys_avg|
+          %w[DERP HERP].each_with_object({}) do |ticker, memo|
+            memo[ticker] = {
+              n_buys: n_buys,
+              n_sells: n_sells,
+              cash_spent: cash_spent,
+              cash_earned: cash_earned,
+              cash_profit: cash_profit,
+              cash_profit_percent: cash_profit_percent,
+              stock_held: stock_held,
+              stock_value: stock_value,
+              total_value: total_value,
+              total_profit: total_profit,
+              total_profit_percent: total_profit_percent,
+            }
+          end.then do |result_by_ticker|
+            TradingStrategies
+              .aggregate_result(result_by_ticker)
+              .then do |aggregate_result|
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:n_buys] },
+                    MathLib.average(results.map { |r| r[:n_buys] }),
+                  ]
+                end.then do |n_buys_sum, n_buys_avg|
+                  assert_equal(
+                    n_buys_sum,
+                    aggregate_result[:n_buys][:sum],
+                  )
+                  assert_equal(
+                    n_buys_avg,
+                    aggregate_result[:n_buys][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:n_sells] },
+                    MathLib.average(results.map { |r| r[:n_sells] }),
+                  ]
+                end.then do |n_sells_sum, n_sells_avg|
+                  assert_equal(
+                    n_sells_sum,
+                    aggregate_result[:n_sells][:sum],
+                  )
+                  assert_equal(
+                    n_sells_avg,
+                    aggregate_result[:n_sells][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:cash_spent] },
+                    MathLib.average(results.map { |r| r[:cash_spent] }),
+                  ]
+                end.then do |cash_spent_sum, cash_spent_avg|
+                  assert_equal(
+                    cash_spent_sum,
+                    aggregate_result[:cash_spent][:sum],
+                  )
+                  assert_equal(
+                    cash_spent_avg,
+                    aggregate_result[:cash_spent][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:cash_earned] },
+                    MathLib.average(results.map { |r| r[:cash_earned] }),
+                  ]
+                end.then do |cash_earned_sum, cash_earned_avg|
+                  assert_equal(
+                    cash_earned_sum,
+                    aggregate_result[:cash_earned][:sum],
+                  )
+                  assert_equal(
+                    cash_earned_avg,
+                    aggregate_result[:cash_earned][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:cash_profit] },
+                    MathLib.average(results.map { |r| r[:cash_profit] }),
+                  ]
+                end.then do |cash_profit_sum, cash_profit_avg|
+                  assert_equal(
+                    cash_profit_sum,
+                    aggregate_result[:cash_profit][:sum],
+                  )
+                  assert_equal(
+                    cash_profit_avg,
+                    aggregate_result[:cash_profit][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:stock_value] },
+                    MathLib.average(results.map { |r| r[:stock_value] }),
+                  ]
+                end.then do |stock_value_sum, stock_value_avg|
+                  assert_equal(
+                    stock_value_sum,
+                    aggregate_result[:stock_value][:sum],
+                  )
+                  assert_equal(
+                    stock_value_avg,
+                    aggregate_result[:stock_value][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:total_value] },
+                    MathLib.average(results.map { |r| r[:total_value] }),
+                  ]
+                end.then do |total_value_sum, total_value_avg|
+                  assert_equal(
+                    total_value_sum,
+                    aggregate_result[:total_value][:sum],
+                  )
+                  assert_equal(
+                    total_value_avg,
+                    aggregate_result[:total_value][:avg],
+                  )
+                end
+
+                result_by_ticker.values.then do |results|
+                  [
+                    results.sum { |r| r[:total_profit] },
+                    MathLib.average(results.map { |r| r[:total_profit] }),
+                  ]
+                end.then do |total_profit_sum, total_profit_avg|
+                  assert_equal(
+                    total_profit_sum,
+                    aggregate_result[:total_profit][:sum],
+                  )
+                  assert_equal(
+                    total_profit_avg,
+                    aggregate_result[:total_profit][:avg],
+                  )
+                end
+
                 assert_equal(
-                  n_buys_sum,
-                  aggregate_result[:n_buys][:sum],
+                  MathLib.percent_difference(
+                    *result_by_ticker.values.map do |result|
+                      [result[:cash_spent], result[:cash_earned]]
+                    end.then do |results|
+                      results.transpose.map(&:sum)
+                    end,
+                  ),
+                  aggregate_result[:cash_profit_percent][:avg],
                 )
+
                 assert_equal(
-                  n_buys_avg,
-                  aggregate_result[:n_buys][:avg],
+                  MathLib.percent_difference(
+                    *result_by_ticker.values.map do |result|
+                      [result[:cash_spent], result[:cash_earned], result[:stock_value]]
+                    end.then do |results|
+                      results.transpose.map(&:sum)
+                    end.then do |expected_cash_spent, expected_cash_earned, expected_stock_value|
+                      [expected_cash_spent, expected_cash_earned + expected_stock_value]
+                    end,
+                  ),
+                  aggregate_result[:total_profit_percent][:avg],
                 )
               end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:n_sells] },
-                  MathLib.average(results.map { |r| r[:n_sells] }),
-                ]
-              end.then do |n_sells_sum, n_sells_avg|
-                assert_equal(
-                  n_sells_sum,
-                  aggregate_result[:n_sells][:sum],
-                )
-                assert_equal(
-                  n_sells_avg,
-                  aggregate_result[:n_sells][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:cash_spent] },
-                  MathLib.average(results.map { |r| r[:cash_spent] }),
-                ]
-              end.then do |cash_spent_sum, cash_spent_avg|
-                assert_equal(
-                  cash_spent_sum,
-                  aggregate_result[:cash_spent][:sum],
-                )
-                assert_equal(
-                  cash_spent_avg,
-                  aggregate_result[:cash_spent][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:cash_earned] },
-                  MathLib.average(results.map { |r| r[:cash_earned] }),
-                ]
-              end.then do |cash_earned_sum, cash_earned_avg|
-                assert_equal(
-                  cash_earned_sum,
-                  aggregate_result[:cash_earned][:sum],
-                )
-                assert_equal(
-                  cash_earned_avg,
-                  aggregate_result[:cash_earned][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:cash_profit] },
-                  MathLib.average(results.map { |r| r[:cash_profit] }),
-                ]
-              end.then do |cash_profit_sum, cash_profit_avg|
-                assert_equal(
-                  cash_profit_sum,
-                  aggregate_result[:cash_profit][:sum],
-                )
-                assert_equal(
-                  cash_profit_avg,
-                  aggregate_result[:cash_profit][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:stock_value] },
-                  MathLib.average(results.map { |r| r[:stock_value] }),
-                ]
-              end.then do |stock_value_sum, stock_value_avg|
-                assert_equal(
-                  stock_value_sum,
-                  aggregate_result[:stock_value][:sum],
-                )
-                assert_equal(
-                  stock_value_avg,
-                  aggregate_result[:stock_value][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:total_value] },
-                  MathLib.average(results.map { |r| r[:total_value] }),
-                ]
-              end.then do |total_value_sum, total_value_avg|
-                assert_equal(
-                  total_value_sum,
-                  aggregate_result[:total_value][:sum],
-                )
-                assert_equal(
-                  total_value_avg,
-                  aggregate_result[:total_value][:avg],
-                )
-              end
-
-              result_by_ticker.values.then do |results|
-                [
-                  results.sum { |r| r[:total_profit] },
-                  MathLib.average(results.map { |r| r[:total_profit] }),
-                ]
-              end.then do |total_profit_sum, total_profit_avg|
-                assert_equal(
-                  total_profit_sum,
-                  aggregate_result[:total_profit][:sum],
-                )
-                assert_equal(
-                  total_profit_avg,
-                  aggregate_result[:total_profit][:avg],
-                )
-              end
-
-              assert_equal(
-                MathLib.percent_difference(
-                  *result_by_ticker.values.map do |result|
-                    [result[:cash_spent], result[:cash_earned]]
-                  end.then do |results|
-                    results.transpose.map(&:sum)
-                  end,
-                ),
-                aggregate_result[:cash_profit_percent][:avg],
-              )
-
-              assert_equal(
-                MathLib.percent_difference(
-                  *result_by_ticker.values.map do |result|
-                    [result[:cash_spent], result[:cash_earned], result[:stock_value]]
-                  end.then do |results|
-                    results.transpose.map(&:sum)
-                  end.then do |expected_cash_spent, expected_cash_earned, expected_stock_value|
-                    [expected_cash_spent, expected_cash_earned + expected_stock_value]
-                  end,
-                ),
-                aggregate_result[:total_profit_percent][:avg],
-              )
-            end
+          end
         end
-      end
     end
 
     def test_with_fixture

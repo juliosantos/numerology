@@ -127,7 +127,7 @@ module Report
 
       if options[:show_trades]
         PrintLib.h3 "Trades"
-        print_trades(trades)
+        print_trades(trades: trades)
         PrintLib.newline
       end
 
@@ -159,7 +159,7 @@ module Report
       PrintLib.newline
     end
 
-    def print_trades(trades:)
+    def self.print_trades(trades:)
       trades.sort_by { |t| t[:date] }.each_with_index do |trade, index|
         PrintLib.puts(
           (index + 1).to_s.rjust(trades.size.to_s.size),
