@@ -14,6 +14,59 @@ require "pry"
 class TradingStrategiesTest < Minitest::Test
   include TestHelper::TickerData
 
+  class BuyEveryPanicAndHold < TradingStrategiesTest
+    def test_works
+      cash_amount = 1000
+
+      (1..30).each do |rest_days|
+        %w[DERP HERP].map do |ticker|
+          TickerData.new(ticker).tap do |ticker_data|
+            ticker_data.days =
+              make_days("2000.01.01", "2000.12.31").each do |day|
+                day["close"] = rand(1000)
+                day["panic"] = true if [true, false].sample
+              end
+          end
+        end.then do |history_by_ticker|
+          TradingStrategies.buy_every_panic_and_hold(
+            history_by_ticker,
+            rest_days: rest_days,
+          ).each do |ticker, trades|
+            buy_days = history_by_ticker
+              .find { |h| h.ticker == ticker }
+              .panic_days
+              .stagger(rest_days)
+
+            assert(trades.map { |t| t[:ticker] }.all?(ticker))
+
+            assert(trades.map { |t| t[:type] }.all?(:buy))
+
+            assert(buy_days.map { |t| t["panic"] }.all?(true))
+
+            assert_equal(buy_days, trades.map { |t| t[:day] })
+
+            assert_equal(
+              buy_days.map { |d| d["date"] },
+              trades.map { |t| t[:date] },
+            )
+
+            assert_equal(
+              buy_days.map { |d| d["close"] },
+              trades.map { |t| t[:stock_price] },
+            )
+
+            assert_equal(
+              buy_days.map { |d| cash_amount.to_f / d["close"] },
+              trades.map { |t| t[:stock_amount] },
+            )
+
+            assert(trades.map { |t| t[:cash_spent] }.all?(cash_amount))
+          end
+        end
+      end
+    end
+  end
+
   class BuyEveryNDaysAndHold < TradingStrategiesTest
     def test_works
       cash_amount = 1000
@@ -58,6 +111,160 @@ class TradingStrategiesTest < Minitest::Test
             )
 
             assert(trades.map { |t| t[:cash_spent] }.all?(cash_amount))
+          end
+        end
+      end
+    end
+
+    def test_with_fixture
+      n_days = 1
+
+      history_by_ticker = [
+        TickerData.new("DERP").tap do |ticker_data|
+          ticker_data.days = [
+            { "date" => "2000-01-01", "close" => 1 },
+            { "date" => "2000-01-02", "close" => 2 },
+            { "date" => "2000-01-03", "close" => 3 },
+            { "date" => "2000-01-04", "close" => 4 },
+            { "date" => "2000-01-05", "close" => 5 },
+            { "date" => "2000-01-06", "close" => 6 },
+            { "date" => "2000-01-07", "close" => 7 },
+            { "date" => "2000-01-08", "close" => 8 },
+            { "date" => "2000-01-09", "close" => 9 },
+            { "date" => "2000-01-10", "close" => 10 },
+          ]
+        end,
+        TickerData.new("HERP").tap do |ticker_data|
+          ticker_data.days = [
+            { "date" => "2000-01-01", "close" => 11 },
+            { "date" => "2000-01-02", "close" => 12 },
+            { "date" => "2000-01-03", "close" => 13 },
+            { "date" => "2000-01-04", "close" => 14 },
+            { "date" => "2000-01-05", "close" => 15 },
+            { "date" => "2000-01-06", "close" => 16 },
+            { "date" => "2000-01-07", "close" => 17 },
+            { "date" => "2000-01-08", "close" => 18 },
+            { "date" => "2000-01-09", "close" => 19 },
+            { "date" => "2000-01-10", "close" => 20 },
+          ]
+        end,
+      ]
+
+      {
+        "DERP" => [
+          {
+            ticker: "DERP",
+            type: :buy,
+            day: { "date" => "2000-01-01", "close" => 1 },
+            date: "2000-01-01",
+            stock_price: 1,
+            stock_amount: 1000,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "DERP",
+            type: :buy,
+            day: { "date" => "2000-01-03", "close" => 3 },
+            date: "2000-01-03",
+            stock_price: 3,
+            stock_amount: 333.333,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "DERP",
+            type: :buy,
+            day: { "date" => "2000-01-05", "close" => 5 },
+            date: "2000-01-05",
+            stock_price: 5,
+            stock_amount: 200,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "DERP",
+            type: :buy,
+            day: { "date" => "2000-01-07", "close" => 7 },
+            date: "2000-01-07",
+            stock_price: 7,
+            stock_amount: 142.857,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "DERP",
+            type: :buy,
+            day: { "date" => "2000-01-09", "close" => 9 },
+            date: "2000-01-09",
+            stock_price: 9,
+            stock_amount: 111.111,
+            cash_spent: 1000,
+          },
+        ],
+        "HERP" => [
+          {
+            ticker: "HERP",
+            type: :buy,
+            day: { "date" => "2000-01-01", "close" => 11 },
+            date: "2000-01-01",
+            stock_price: 11,
+            stock_amount: 90.909,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "HERP",
+            type: :buy,
+            day: { "date" => "2000-01-03", "close" => 13 },
+            date: "2000-01-03",
+            stock_price: 13,
+            stock_amount: 76.923,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "HERP",
+            type: :buy,
+            day: { "date" => "2000-01-05", "close" => 15 },
+            date: "2000-01-05",
+            stock_price: 15,
+            stock_amount: 66.666,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "HERP",
+            type: :buy,
+            day: { "date" => "2000-01-07", "close" => 17 },
+            date: "2000-01-07",
+            stock_price: 17,
+            stock_amount: 58.823,
+            cash_spent: 1000,
+          },
+          {
+            ticker: "HERP",
+            type: :buy,
+            day: { "date" => "2000-01-09", "close" => 19 },
+            date: "2000-01-09",
+            stock_price: 19,
+            stock_amount: 52.631,
+            cash_spent: 1000,
+          },
+        ],
+      }.then do |expected_result|
+        TradingStrategies.buy_every_n_days_and_hold(
+          history_by_ticker,
+          n_days: n_days,
+        ).then do |trades_by_ticker|
+          trades_by_ticker.each do |ticker, trades|
+            trades.each_with_index do |trade, index|
+              %i[ticker type day date stock_price cash_spent].each do |k|
+                assert_equal(
+                  expected_result[ticker][index][k],
+                  trade[k],
+                )
+              end
+
+              assert_in_delta(
+                expected_result[ticker][index][:stock_amount],
+                trade[:stock_amount],
+                1e-3,
+              )
+            end
           end
         end
       end

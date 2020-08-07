@@ -27,7 +27,7 @@ module TradingStrategies
 
         {
           ticker: ticker_data.ticker,
-          type: "sell",
+          type: :sell,
           day: sell_day,
           date: sell_day["date"],
           stock_price: sell_day["close"],

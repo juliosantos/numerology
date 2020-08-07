@@ -1,24 +1,14 @@
-require_relative "lib/config"
-require_relative "lib/print_lib"
-require_relative "lib/report"
-require_relative "lib/ticker_data"
-require_relative "lib/trading_strategies"
+require "lib/config.rb"
+require "lib/print_lib"
+require "lib/report"
+require "lib/ticker_data"
+require "lib/trading_strategies"
 
-PrintLib.init
+#PrintLib.init
 
 # TODO these calculations will be negatively affected if there are missing
 # periods in the history of a stock; perhaps I can start by raising an alarm
 # if a ticker suffers from this
-
-# TODO clamping isn't working properly, e.g. clamping AAPL to
-# START_DATE=2012.08.23
-# END_DATE=2013.08.23
-# yields 2013-01-02 to 2013-12-31
-# XXX this is because we're comparing dots and dashes lol
-# fixed in .env
-# so, we probably want 2 things:
-# 1. Config to explode when data is not in right format
-# 2. API importer to do the same thing
 
 history_by_ticker = Config.tickers.map do |ticker|
   TickerData.new(ticker).then do |ticker_data|
@@ -57,18 +47,18 @@ end.compact
 # of a strategy execution. Example: sell all for cash. Sell all at target. Etc.
 # Possibly, strategies should be pipeable, with a date range or day/month/year count.
 
-Report.parameters
-Report.baseline_performance(history_by_ticker)
+#Report.parameters
+#Report.baseline_performance(history_by_ticker)
 
-ts1 = TradingStrategies.execute(
-  strategy: :buy_every_panic_and_sell_at_target,
-  history_by_ticker: history_by_ticker,
-  strategy_options: {
-    rest_days: Config.rest_days,
-    sell_gain_target: Config.sell_gain_target,
-  },
-)
-Report::TradingStrategies.print(ts1)
+#ts1 = TradingStrategies.execute(
+#  strategy: :buy_every_panic_and_sell_at_target,
+#  history_by_ticker: history_by_ticker,
+#  strategy_options: {
+#    rest_days: Config.rest_days,
+#    sell_gain_target: Config.sell_gain_target,
+#  },
+#)
+#Report::TradingStrategies.print(ts1)
 
 ts2 = TradingStrategies.execute(
   strategy: :buy_every_panic_and_hold,
@@ -77,15 +67,16 @@ ts2 = TradingStrategies.execute(
     rest_days: Config.rest_days,
   },
 )
-Report::TradingStrategies.print(ts2)
+return ts2[:result_aggregate][:total_profit_percent][:avg]
+#Report::TradingStrategies.print(ts2)
 
-ts3 = TradingStrategies.execute(
-  strategy: :buy_every_n_days_and_hold,
-  history_by_ticker: history_by_ticker,
-  strategy_options: {
-    n_days: Config.buy_n_days,
-  },
-)
-Report::TradingStrategies.print(ts3)
+#ts3 = TradingStrategies.execute(
+#  strategy: :buy_every_n_days_and_hold,
+#  history_by_ticker: history_by_ticker,
+#  strategy_options: {
+#    n_days: Config.buy_n_days,
+#  },
+#)
+#Report::TradingStrategies.print(ts3)
 
-PrintLib.end
+#PrintLib.end
