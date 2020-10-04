@@ -31,6 +31,7 @@ class TradingStrategiesTest < Minitest::Test
           TradingStrategies.buy_every_panic_and_hold(
             history_by_ticker,
             rest_days: rest_days,
+            only_sp500: false,
           ).each do |ticker, trades|
             buy_days = history_by_ticker
               .find { |h| h.ticker == ticker }
@@ -83,6 +84,7 @@ class TradingStrategiesTest < Minitest::Test
           TradingStrategies.buy_every_n_days_and_hold(
             history_by_ticker,
             n_days: n_days,
+            only_sp500: false,
           ).each do |ticker, trades|
             buy_days = history_by_ticker
               .find { |h| h.ticker == ticker }
@@ -249,6 +251,7 @@ class TradingStrategiesTest < Minitest::Test
         TradingStrategies.buy_every_n_days_and_hold(
           history_by_ticker,
           n_days: n_days,
+          only_sp500: false,
         ).then do |trades_by_ticker|
           trades_by_ticker.each do |ticker, trades|
             trades.each_with_index do |trade, index|
@@ -359,13 +362,13 @@ class TradingStrategiesTest < Minitest::Test
 
       history_by_ticker = [
         TickerData.new("DERP").tap do |ticker_data|
-          ticker_data.days = [{ "close" => 101 }]
+          ticker_data.days = [{ "date" => "2000-01-01", "close" => 101 }]
         end,
         TickerData.new("HERP").tap do |ticker_data|
-          ticker_data.days = [{ "close" => 102 }]
+          ticker_data.days = [{ "date" => "2000-01-01", "close" => 102 }]
         end,
         TickerData.new("TERP").tap do |ticker_data|
-          ticker_data.days = [{ "close" => 103 }]
+          ticker_data.days = [{ "date" => "2000-01-01", "close" => 103 }]
         end,
       ]
 
@@ -378,6 +381,8 @@ class TradingStrategiesTest < Minitest::Test
           cash_profit: -4,
           cash_profit_percent: -50,
           stock_held: 3,
+          stock_price: 101,
+          stock_price_date: "2000-01-01",
           stock_value: 303,
           total_value: 307,
           total_profit: 299,
@@ -391,6 +396,8 @@ class TradingStrategiesTest < Minitest::Test
           cash_profit: 4,
           cash_profit_percent: 20,
           stock_held: 6,
+          stock_price: 102,
+          stock_price_date: "2000-01-01",
           stock_value: 612,
           total_value: 636,
           total_profit: 616,
@@ -404,6 +411,8 @@ class TradingStrategiesTest < Minitest::Test
           cash_profit: 0,
           cash_profit_percent: 0,
           stock_held: 0,
+          stock_price: 103,
+          stock_price_date: "2000-01-01",
           stock_value: 0,
           total_value: 0,
           total_profit: 0,

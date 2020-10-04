@@ -14,7 +14,6 @@ class Config
       super
     elsif value.match?(/^true$/i)
       true
-    # TODO test
     elsif value.match?(/^false$/i)
       false
     elsif value.match?(/^[+-]?\d+$/)

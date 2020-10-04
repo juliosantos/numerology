@@ -41,6 +41,17 @@ class ConfigTest < Minitest::Test
       refute_equal true, Config.derp
     end
 
+    def test_falses
+      ENV["DERP"] = "false"
+      refute Config.derp
+
+      ENV["DERP"] = "FALSE"
+      refute Config.derp
+
+      ENV["DERP"] = "unfalse"
+      refute_equal false, Config.derp
+    end
+
     def test_ints
       [
         [1, "1"],

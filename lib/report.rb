@@ -142,6 +142,10 @@ module Report
         number_with_delimiter(result[:cash_earned].round),
       )
       PrintLib.puts(
+        "Stock price (#{result[:stock_price_date]}): ",
+        number_with_delimiter(result[:stock_price].round),
+      )
+      PrintLib.puts(
         "Stock value: ",
         number_with_delimiter(result[:stock_value].round),
       )

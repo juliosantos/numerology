@@ -2,12 +2,11 @@ require_relative "api"
 require_relative "cache"
 require_relative "config"
 require_relative "math_lib"
+require_relative "sp500"
 
 class TickerData
   attr_reader :ticker
   attr_accessor :days
-
-  DATE_FORMAT = "%Y-%m-%d".freeze
 
   def initialize(ticker)
     @ticker = ticker
@@ -28,6 +27,12 @@ class TickerData
     @days.select! do |day|
       (start_date.nil? || day["date"] >= start_date) &&
         (end_date.nil? || day["date"] <= end_date)
+    end
+  end
+
+  def check_sp500_presence
+    @days.each do |day|
+      day["in_sp500"] = SP500.member?(@ticker, day["date"])
     end
   end
 
